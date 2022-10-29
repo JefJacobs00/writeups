@@ -1,0 +1,92 @@
+Bij het downloaden van de source code wordt een eigen implementatie van RSA uitgevoerd. Deze implementatie heeft de fout dat de exponent op 5 staat. We hebben ook de mogelijkheid meerdere keren een "time capsule" op te vragen. 
+
+in de time capsule zit het volgende:
+encrypted flag: c (hexadecimaal)
+public key: n (hexadecimaal)
+exponent: e
+
+met c = m^e mod n
+
+e is in elk geval 5 -> c = m^5 mod n
+
+bij iedere aanvraag zijn c en n anders (c_i,n_i)
+dus: c_i = m^5 mod n_i
+
+Deze implementatie is exploitable aan de hand van Håstad's broadcast attack:
+
+C = M^5 mod N_1 * N_2 * .. * N_5 maar M^5 < N_1 * ... * N_5 
+Dus:
+	C = M^5 (10 mod 100 = 10)
+
+Als we C kunnen berekenen kunnen we M berekenen want c = m^5
+c kan berekend worden aan de hand van de chinese remainder theorem. Als we dan de 5de machts wortel nemen van c dan hebben we M.
+
+Hiervoor kan een script geschreven worden dat een aantal verschillende messages ophaalt en hiervan de message achterhaalt.
+
+import socket
+
+from Crypto.Util.number import long_to_bytes, bytes_to_long
+import json
+import gmpy
+from functools import reduce
+
+ip = "167.71.137.174"
+port = 32310
+e = 5
+
+listn = []
+listc = []
+
+def getTimeCapsules(i):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((ip, port))
+
+    for x in range(i):
+        sock.recv(1024)
+        sock.send(b'Y\n')
+        
+        var = sock.recv(1024).decode("utf-8")
+        start = var.index("{")
+        end = var.index("}") + 1
+
+        cap = json.loads(var[start:end])
+
+        c = cap["time_capsule"]
+        n = cap["pubkey"][0]
+
+        listn.append(int(n, base=16))
+        listc.append(int(c, base=16))
+
+def chinese_remainder(n, c):
+    sum = 0
+    prod = reduce(lambda a, b: a * b, n)
+    for n_i, a_i in zip(n, c):
+        p = prod // n_i
+        sum += a_i * mul_inv(p, n_i) * p
+    return sum % prod
+
+
+def mul_inv(a, b):
+    b0 = b
+    x0, x1 = 0, 1
+    if b == 1: return 1
+    while a > 1:
+        q = a // b
+        a, b = b, a % b
+        x0, x1 = x1 - q * x0, x0
+    if x1 < 0: x1 += b0
+    return x1
+
+
+getTimeCapsules(e)
+cr = chinese_remainder(listn, listc)
+x = gmpy.root(cr, e)[0]
+print(long_to_bytes(x).decode("utf-8"))
+
+als we deze uitvoeren krijgen we de flag:
+
+HTB{t3h_FuTUr3_15_bR1ghT_1_H0p3_********************}
+
+
+In dit geval zijn 3 verschillende flags genoeg om de flag te ontcijferen.
+
