@@ -3,7 +3,7 @@
 
 # But not these files...
 !.gitignore
-!writeup.txt
+!*writeup*
 # etc...
 
 # ...even if they are in subdirectories
