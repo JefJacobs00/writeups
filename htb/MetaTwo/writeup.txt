@@ -327,5 +327,17 @@ jnelson:Cb4_JmWM8zUZWMu@Ys
 
 hiermee hebben we een foothold op de server en de user flag.
 
+Om root access te krijgen runnen we linpeas.sh dit geeft ons een directory met mogelijke ssh keys: ~/.passpie/ssh.
+In deze directory vinden we een twee files: jnelson.pass en root.pass
 
+dit geeft de passwoorden maar als pgp message. Dit is dus encrypted de public en private keys zijn opgeslagen in ~/.passpie/.keys. Nu is enkel nog een passfrase nodig om deze messages de decrypten.  
+
+Hiervoor kan gpg2john gebruikt worden. 
+-> $ gpg2john key.pgp > jnelson 
+-> $ john jnelson --wordlist=/usr/share/wordlists/rockyou.txt
+
+Dit geeft dat het password blink182 is. 
+Nu kunnen we de root message decrypten en dit geeft ons als password voor root: p7qfAZt4_A1xo_0x.
+
+en hiermee kunnen we aan de root flag.
 
