@@ -1,0 +1,91 @@
+nmap -sC -sV 10.10.11.172
+Starting Nmap 7.92 ( https://nmap.org ) at 2022-10-29 12:09 EDT
+Nmap scan report for 10.10.11.172
+Host is up (0.079s latency).
+Not shown: 997 closed tcp ports (conn-refused)
+PORT    STATE SERVICE  VERSION
+22/tcp  open  ssh      OpenSSH 8.4p1 Debian 5+deb11u1 (protocol 2.0)
+| ssh-hostkey: 
+|   3072 91:e8:35:f4:69:5f:c2:e2:0e:27:46:e2:a6:b6:d8:65 (RSA)
+|   256 cf:fc:c4:5d:84:fb:58:0b:be:2d:ad:35:40:9d:c3:51 (ECDSA)
+|_  256 a3:38:6d:75:09:64:ed:70:cf:17:49:9a:dc:12:6d:11 (ED25519)
+80/tcp  open  http     nginx 1.18.0
+|_http-title: Did not follow redirect to http://shared.htb
+|_http-server-header: nginx/1.18.0
+443/tcp open  ssl/http nginx 1.18.0
+| tls-nextprotoneg: 
+|   h2
+|_  http/1.1
+| ssl-cert: Subject: commonName=*.shared.htb/organizationName=HTB/stateOrProvinceName=None/countryName=US
+| Not valid before: 2022-03-20T13:37:14
+|_Not valid after:  2042-03-15T13:37:14
+|_http-title: Did not follow redirect to https://shared.htb
+|_ssl-date: TLS randomness does not represent time
+| tls-alpn: 
+|   h2
+|_  http/1.1
+|_http-server-header: nginx/1.18.0
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 38.19 seconds
+
+Een redirect naar shared.htb -> 10.10.11.172	shared.htb toevoegen aan /etc/hosts
+
+uit een snelle scan blijkt dat open poorten zijn: 
+	22	ssh 
+	80	http
+	443	ssl/http
+
+uit deze poorten is http het meest interessant. Terwijl de we de site bekijken kan een gobuster uitgevoerd worden om mogelijke directories of vhosts te vinden.
+
+gobuster dir -k -u https://shared.htb -w /usr/share/wordlists/dirb/common.txt -b 302,404,403   
+===============================================================
+Gobuster v3.2.0-dev
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
+===============================================================
+[+] Url:                     https://shared.htb
+[+] Method:                  GET
+[+] Threads:                 10
+[+] Wordlist:                /usr/share/wordlists/dirb/common.txt
+[+] Negative Status codes:   302,404,403
+[+] User Agent:              gobuster/3.2.0-dev
+[+] Timeout:                 10s
+===============================================================
+2022/10/29 13:09:08 Starting gobuster in directory enumeration mode
+===============================================================
+/api                  (Status: 401) [Size: 16]
+/app                  (Status: 301) [Size: 169] [--> https://shared.htb/app/]
+/apis                 (Status: 401) [Size: 16]
+/bin                  (Status: 301) [Size: 169] [--> https://shared.htb/bin/]
+/cache                (Status: 301) [Size: 169] [--> https://shared.htb/cache/]
+/classes              (Status: 301) [Size: 169] [--> https://shared.htb/classes/]
+/config               (Status: 301) [Size: 169] [--> https://shared.htb/config/]
+/controllers          (Status: 301) [Size: 169] [--> https://shared.htb/controllers/]
+/docs                 (Status: 301) [Size: 169] [--> https://shared.htb/docs/]
+/download             (Status: 301) [Size: 169] [--> https://shared.htb/download/]
+/img                  (Status: 301) [Size: 169] [--> https://shared.htb/img/]
+/index.php            (Status: 200) [Size: 56215]
+/js                   (Status: 301) [Size: 169] [--> https://shared.htb/js/]
+/mails                (Status: 301) [Size: 169] [--> https://shared.htb/mails/]
+/Makefile             (Status: 200) [Size: 88]
+/modules              (Status: 301) [Size: 169] [--> https://shared.htb/modules/]
+/pdf                  (Status: 301) [Size: 169] [--> https://shared.htb/pdf/]
+/robots.txt           (Status: 200) [Size: 2748]
+/src                  (Status: 301) [Size: 169] [--> https://shared.htb/src/]
+/themes               (Status: 301) [Size: 169] [--> https://shared.htb/themes/]
+/tools                (Status: 301) [Size: 169] [--> https://shared.htb/tools/]
+/translations         (Status: 301) [Size: 169] [--> https://shared.htb/translations/]
+/upload               (Status: 301) [Size: 169] [--> https://shared.htb/upload/]
+/var                  (Status: 301) [Size: 169] [--> https://shared.htb/var/]
+/vendor               (Status: 301) [Size: 169] [--> https://shared.htb/vendor/]
+/webservice           (Status: 301) [Size: 169] [--> https://shared.htb/webservice/]
+Progress: 4605 / 4615 (99.78%)
+===============================================================
+2022/10/29 13:11:10 Finished
+===============================================================
+
+Uit deze scan blijkt het dat we access hebben tot robots.txt, Makefile en index.php.
+
+
+

