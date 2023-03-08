@@ -1,0 +1,19 @@
+The xorxorxor challenge gives a file with an encrypted flag and the way it gets encrypted.
+
+The program generates a random key with 4 bytes. Lets call the bytes k0, k1, k2 and k3.
+Then it uses the key to encrypt the data by xoring the data with key. However the length of the key is only 4 bytes so it gets reused. 
+
+d0 xor k0
+d1 xor k1
+d2 xor k2
+d3 xor k3
+
+d4 xor k0
+..
+
+
+We know the first 4 Letters of the flag (HTB{..})
+So if take the first encryped byte we need to xor it with a byte that gives a H --> k0
+same for T --> k1, B --> k2, { --> k3.
+
+If we put this in a program we figure out the key and can decrypt the message.

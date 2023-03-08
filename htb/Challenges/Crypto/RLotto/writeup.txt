@@ -1,0 +1,52 @@
+import random
+import re
+
+from pwn import *
+
+
+r = remote('138.68.163.103', 30614)
+seed = int(time.time())
+
+#r.send(asm(shellcraft.sh()))
+
+s = ""
+while r.connected() and 'Put here the next 5 numbers' not in s:
+    s += r.recv().decode('UTF-8')
+
+
+print(s)
+print('[?]Estemated seed is: ' + str(seed))
+
+extraction = re.findall(r"EXTRACTION: (\d+) (\d+) (\d+) (\d+) (\d+)", s)[0]
+first_five = []
+for x in extraction:
+    first_five.append(int(x))
+
+
+def check_seed(seed, correct_numbers):
+    random.seed(seed)
+    for i in range(5):
+        rand = random.randint(1,90)
+        if rand != correct_numbers[i]:
+            return check_seed(seed - 1, correct_numbers)
+
+    return seed
+
+
+correct_seed = check_seed(seed, first_five)
+print('[!] Real seed is: ' + str(correct_seed))
+
+numbers = ""
+random.seed(correct_seed)
+for i in range(10):
+    rand = str(random.randint(1,90))
+    if i > 4:
+        numbers += rand
+    if 4 < i < 9:
+        numbers += " "
+numbers += "\n"
+print("The following numbers are: "+numbers)
+r.send(numbers)
+r.interactive()
+
+They use the time as seed for random this means that it's not random at all and we can get a close estemate. Then we know we are in area and need to check when they took the seed. This script does it reliable. You could also give the numbers get the current time keep going down untill seed is found and print the following numbers;
