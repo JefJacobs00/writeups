@@ -1,12 +1,11 @@
 # Ignore everything
-*
+
 televic/*
 
 # But not these files...
 !.gitignore
 !*writeup*
-!*.md
-!*.py
+!htb/*
 # etc...
 
 
