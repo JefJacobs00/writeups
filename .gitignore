@@ -1,5 +1,6 @@
 # Ignore everything
 *
+televic/*
 
 # But not these files...
 !.gitignore
