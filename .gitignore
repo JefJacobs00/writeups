@@ -4,7 +4,10 @@
 # But not these files...
 !.gitignore
 !*writeup*
+!*.md
+!*.py
 # etc...
+
 
 # ...even if they are in subdirectories
 !*/
