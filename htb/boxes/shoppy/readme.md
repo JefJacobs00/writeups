@@ -1,6 +1,6 @@
 # Shoppy 
 
-Shoppy is an easy Hackthebox machine
+Shoppy is an easy Hackthebox machine. That uses noSQLi to get a foothold. Then use a binary file to get credits for the user deploy. From there using docker get root access. 
 
 
 # Recon
