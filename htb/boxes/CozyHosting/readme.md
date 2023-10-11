@@ -38,7 +38,8 @@ two of these are not UNauthorized and belong to kanderson:
 
 By changing the cookie we get access to a admin dashboard
 
-![image](https://github.com/JefJacobs00/writeups/assets/43653885/dca39894-aa51-4629-814e-a19465fcf077)
+![image](https://github.com/JefJacobs00/writeups/assets/43653885/a6313337-ef37-4f02-8702-ef2699af66e3)
+
 
 ![image](https://github.com/JefJacobs00/writeups/assets/43653885/7f9a2e71-4965-44b3-94bb-1afe9cfca2fc)
 
